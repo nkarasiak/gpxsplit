@@ -12,50 +12,49 @@ from lxml import etree, objectify
 # import os for manipulating folder and searching gpx files
 import os
 
-print("Get all gpx from script folder and split it into segment to \"result\" folder") 
+print("Get all gpx from script folder and split it into segment/trak/point to \"result\" folder") 
        
-#
+#main class to manage gpx
 class gpxsplit:
     """
     # This class manage gpx in the folder'script.
     ROLE : Open/read gpx,  create result directory to save split gpx
-    
     def getfile():
-        FUNCTION : List the script directory and get all gpx files
+        FUNCTION : List the script's folder and get all gpx files
         RETURN : All gpx files in a list 
-    def infile.parsefile():
-        FUNCTION : Parse gpx file with etree (lxml)
+    def parsefile(infile):
+        FUNCTION : Parse gpx file with etree and objectify (from lxml)
         RETURN : Parsing file, root file, and filename (without extension)
     def folder.resultdir():
-        FUNCTION : Create by defaut "result" folder if doesn't exist
-        RETURN : Folder name     
+        FUNCTION : Create by default "result" folder if doesn't exist
+        RETURN : Folder name created    
     """
     def getfile():
-        # Create empty list
-        gpxfiles=[]
+        # Create empty list for storing gpx files
+        gpxFiles=[]
         # Searching for gpx file in script directory and adding to gpxfiles list
         for file in os.listdir():
             if file.endswith(".gpx"):
-                gpxfiles.append(file)
+                gpxFiles.append(file)
         # Return list with gpx files
-        return gpxfiles
+        return gpxFiles
     
     def parsefile(infile):
         # File name without extension
-        outfileNoExt=infile.replace(".gpx", "")
+        outFileNoExt=infile.replace(".gpx", "")
         # Gpx tree file
-        outgpx=etree.parse(infile)
+        outGpx=etree.parse(infile)
         # Gpx root file
-        outroot = outgpx.getroot()
+        outRoot = outGpx.getroot()
         # Remove Default Namespace
-        for elem in outroot.getiterator():
+        for elem in outRoot.getiterator():
             if not hasattr(elem.tag, 'find'): continue  # (1)
             i = elem.tag.find('}')
             if i >= 0:
                 elem.tag = elem.tag[i+1:]
-        objectify.deannotate(outroot, cleanup_namespaces=True)
-        # Return tree, root, and filename without extension)
-        return (outgpx,outroot,outfileNoExt)
+        objectify.deannotate(outRoot, cleanup_namespaces=True)
+        # Return tree, root, and filename without extension
+        return (outGpx,outRoot,outFileNoExt)
     
     def resultdir(folder='result/'):
         # Create result folder if doesn't exist
@@ -63,13 +62,6 @@ class gpxsplit:
             os.makedirs(folder)
         return folder
         
-    def addmetadata():
-        gpx = etree.Element('gpx', xmlns="http://www.topografix.com/GPX/1/1")
-        # add metadata to gpx
-        gpxmetadata = etree.SubElement(gpx, 'metadata')
-        etree.SubElement(gpxmetadata, 'author').text = "GpxSplit"
-        etree.SubElement(gpxmetadata, 'link').text = "https://github.com/lennepkade/gpxsplit"
-
 class cutby(gpxsplit):
     """
     # This class split gpx into multiple files
@@ -77,13 +69,13 @@ class cutby(gpxsplit):
     or into every segment orevery track
     
     def segment():
-        FUNCTION : Parse file, manage namespace, and split into different segments
+        FUNCTION : Parse file, and split into different segments
         RETURN : Create a file for each segment with the name "file_seg1.gpx" (1 to X segments)         
     def track():
-        FUNCTION : Parse file, manage namespace, and split into different tracks
+        FUNCTION : Parse file, and split into different tracks
         RETURN : Create a file for each track with the name "trk1.gpx" (1 to X tracks)
     def point(inLon,inLat):
-        FUNCTION : Parse file, manage namespace, and split a file in two depending a point
+        FUNCTION : Parse file, and split a file in two depending a point
         If a point doens't exist, will split if a point has a lon and lat higher than given lon/lat.
         RETURN : Create two files with name "file_part1.gpx" and "file_part2.gpx" 
     """
@@ -128,6 +120,7 @@ class cutby(gpxsplit):
                 for id, trk in enumerate(root.findall('trk')):
                     # add GPX metadata
                     gpx = etree.Element('gpx', xmlns="http://www.topografix.com/GPX/1/1")
+                    
                     # add metadata to gpx
                     gpxmetadata = etree.SubElement(gpx, 'metadata')
                     etree.SubElement(gpxmetadata, 'author').text = "GpxSplit"
