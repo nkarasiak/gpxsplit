@@ -99,11 +99,9 @@ class cutby(gpxsplit):
                     trk = etree.SubElement(gpx, "trk")
                     # add all elements in each segment (trkpt, ele, time...)
                     trk.append(seg)   
-                    # id begins with 0, add 1 to start at 1
-                    id+=1
                     # create a file for each seg
                     # call resultdir() to create result folder if doesn't exist
-                    with open(gpxsplit.resultdir()+noext+'_seg'+str(id)+'.gpx', mode='wb') as doc:
+                    with open(gpxsplit.resultdir()+noext+'_seg'+str(id+1)+'.gpx', mode='wb') as doc:
                         doc.write(etree.tostring(gpx, pretty_print=True))
             else: # script has nothing to do
                 print(noext,'has only one or no segment. No change')
@@ -128,11 +126,9 @@ class cutby(gpxsplit):
                     etree.SubElement(gpxmetadata, 'name').text = noext+' split by track'
                     # add all seg
                     gpx.append(trk)   
-                    # id begins with 0, add 1 to start at 1
-                    id+=1
                     # create a file for each track
                     # call resultdir() to create result folder if doesn't exist
-                    with open(gpxsplit.resultdir()+noext+'_trk'+str(id)+'.gpx', mode='wb') as doc:
+                    with open(gpxsplit.resultdir()+noext+'_trk'+str(id+1)+'.gpx', mode='wb') as doc:
                         doc.write(etree.tostring(gpx, pretty_print=True))
             else: # script has nothing to do
                 print(noext,'has only one or no trk. No change')  
@@ -160,26 +156,27 @@ class cutby(gpxsplit):
                 print("Splitting file :",noext)
                 for seg in root.iter("trkseg"):
                     # create a segment per gpx file
-                    
                     seg1 = etree.SubElement(trk1, "trkseg")
                     seg2 = etree.SubElement(trk2, "trkseg")
-                    for track in root.iter("trkpt"):
-                        # Add trks to part 1
-                        if track.attrib['lat']<=inLat and track.attrib['lon']<=inLon:                           
-                            seg1.append(track)
-                            with open(gpxsplit.resultdir()+noext+'_part1'+'.gpx', mode='wb') as doc:
-                                       doc.write(etree.tostring(gpx1, pretty_print=True))
-                        # Add trks to part 2  
-                        else:
-                            seg2.append(track)
+                    # Default : Splitting point is unknown, so set to False
+                    findpoint=False
+                    for j, trkpt in enumerate(root.iter("trkpt")):
+                        # Add trkpt to part 2
+                        if trkpt.attrib['lat']==inLat and trkpt.attrib['lon']==inLon or findpoint==True:
+                            findpoint=True
+                            seg2.append(trkpt)
                             with open(gpxsplit.resultdir()+noext+'_part2'+'.gpx', mode='wb') as doc:
-                                       doc.write(etree.tostring(gpx2, pretty_print=True))
+                                doc.write(etree.tostring(gpx2, pretty_print=True))
+                        elif findpoint==False:
+                            seg1.append(trkpt)
+                            with open(gpxsplit.resultdir()+noext+'_part1'+'.gpx', mode='wb') as doc:
+                                doc.write(etree.tostring(gpx1, pretty_print=True))
+                            
         # Tell the user operation is done and show folder
         print("Done")
         print("Split file has been stored in \""+gpxsplit.resultdir()+"\" folder")
             
 if __name__ == '__main__':
-    #cutby.point("-86.79069325","34.789063417")
+    cutby.point("-86.790224983","34.789001300")
     cutby.track()
-    #cutby.segment()
-    
+    cutby.segment()
