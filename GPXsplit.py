@@ -4,8 +4,8 @@ Created on Fri Oct 23 18:22:04 2015
 
 @author: lennepkade
 """
-# https://www.jmcpdotcom.com/blog/2015/06/01/fixing-up-gpx-ride-data-with-lxml-etree/
-#     
+# GPXsplit is a tool to split gpx file
+# This version can split by trseg (segment), trk (track), and by a specific latitude/longitude
 
 # import etree to manage GPX, objectify to remove namespace
 from lxml import etree, objectify
@@ -93,7 +93,6 @@ class cutby(gpxsplit):
                     # add metadata to gpx
                     gpxmetadata = etree.SubElement(gpx, 'metadata')
                     etree.SubElement(gpxmetadata, 'author').text = "GpxSplit"
-                    etree.SubElement(gpxmetadata, 'link').text = "https://github.com/lennepkade/gpxsplit"  
                     etree.SubElement(gpxmetadata, 'name').text = noext+' split by segment'
                     # add TRK tag (children of GPX)
                     trk = etree.SubElement(gpx, "trk")
@@ -118,11 +117,9 @@ class cutby(gpxsplit):
                 for id, trk in enumerate(root.findall('trk')):
                     # add GPX metadata
                     gpx = etree.Element('gpx', xmlns="http://www.topografix.com/GPX/1/1")
-                    
                     # add metadata to gpx
                     gpxmetadata = etree.SubElement(gpx, 'metadata')
                     etree.SubElement(gpxmetadata, 'author').text = "GpxSplit"
-                    etree.SubElement(gpxmetadata, 'link').text = "https://github.com/lennepkade/gpxsplit"  
                     etree.SubElement(gpxmetadata, 'name').text = noext+' split by track'
                     # add all seg
                     gpx.append(trk)   
@@ -139,6 +136,10 @@ class cutby(gpxsplit):
     def point(inLon,inLat):
         for file in gpxsplit.getfile():
             gpx,root,noext=gpxsplit.parsefile(file)
+            print("Splitting file :",noext,"with",inLon,'in longitude and',inLat,'in lattitude')
+            # Default : Splitting point is unknown, so set to False
+            # foundpoint=False, means inLon and inLat are currently not found in the GPX file
+            foundpoint=False
             for trk in root.findall('trk'):
                 # create a gpx for each part and add metadata
                 gpx1 = etree.Element('gpx', xmlns="http://www.topografix.com/GPX/1/1")
@@ -153,30 +154,32 @@ class cutby(gpxsplit):
                 etree.SubElement(gpxmetadata, 'name').text = noext+' split by specific point'
                 trk1 = etree.SubElement(gpx1, "trk")
                 trk2 = etree.SubElement(gpx2, "trk")
-                print("Splitting file :",noext)
                 for seg in root.iter("trkseg"):
                     # create a segment per gpx file
                     seg1 = etree.SubElement(trk1, "trkseg")
                     seg2 = etree.SubElement(trk2, "trkseg")
-                    # Default : Splitting point is unknown, so set to False
-                    findpoint=False
                     for j, trkpt in enumerate(root.iter("trkpt")):
-                        # Add trkpt to part 2
-                        if trkpt.attrib['lat']==inLat and trkpt.attrib['lon']==inLon or findpoint==True:
-                            findpoint=True
+                        # Add trkpt to part 2 if lat/lon have been found, and so foundpoint came to True
+                        if trkpt.attrib['lat']==inLat and trkpt.attrib['lon']==inLon or foundpoint==True:
+                            foundpoint=True
                             seg2.append(trkpt)
                             with open(gpxsplit.resultdir()+noext+'_part2'+'.gpx', mode='wb') as doc:
                                 doc.write(etree.tostring(gpx2, pretty_print=True))
-                        elif findpoint==False:
+                        # Add trkpt to part 1
+                        elif foundpoint==False:
                             seg1.append(trkpt)
                             with open(gpxsplit.resultdir()+noext+'_part1'+'.gpx', mode='wb') as doc:
                                 doc.write(etree.tostring(gpx1, pretty_print=True))
-                            
         # Tell the user operation is done and show folder
-        print("Done")
-        print("Split file has been stored in \""+gpxsplit.resultdir()+"\" folder")
-            
+        if foundpoint==False:
+            print('Point',inLon,'/',inLat,'has not been found')
+        else:
+            print("Done")
+            print("Split file has been stored in \""+gpxsplit.resultdir()+"\" folder")
+
+# Test program when use directly this script
 if __name__ == '__main__':
-    cutby.point("-86.790224983","34.789001300")
+    cutby.point("-86.788127733","34.793517133")
     cutby.track()
     cutby.segment()
+    
